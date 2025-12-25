@@ -81,6 +81,11 @@ class Provider::Registry
       def yahoo_finance
         Provider::YahooFinance.new
       end
+
+      def coin_gecko
+        api_key = ENV["COINGECKO_API_KEY"].presence || Setting.try(:coingecko_api_key)
+        Provider::CoinGecko.new(api_key: api_key)
+      end
   end
 
   def initialize(concept)
@@ -108,7 +113,7 @@ class Provider::Registry
       when :exchange_rates
         %i[twelve_data yahoo_finance]
       when :securities
-        %i[twelve_data yahoo_finance]
+        %i[twelve_data yahoo_finance coin_gecko]
       when :llm
         %i[openai]
       else

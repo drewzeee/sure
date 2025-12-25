@@ -5,20 +5,34 @@ module Security::Provided
 
   class_methods do
     def provider
-      provider = ENV["SECURITIES_PROVIDER"].presence || Setting.securities_provider
-      registry = Provider::Registry.for_concept(:securities)
-      registry.get_provider(provider.to_sym)
+      # Default to the configured provider
+      default_provider = registry.get_provider(
+        ENV["SECURITIES_PROVIDER"].presence || Setting.securities_provider
+      )
+
+      default_provider
+    end
+
+    def registry
+      Provider::Registry.for_concept(:securities)
     end
 
     def search_provider(symbol, country_code: nil, exchange_operating_mic: nil)
-      return [] if provider.nil? || symbol.blank?
+      # Switch provider based on exchange
+      search_provider = if exchange_operating_mic == "CRYPTO"
+        registry.get_provider(:coin_gecko)
+      else
+        provider
+      end
+
+      return [] if search_provider.nil? || symbol.blank?
 
       params = {
         country_code: country_code,
         exchange_operating_mic: exchange_operating_mic
       }.compact_blank
 
-      response = provider.search_securities(symbol, **params)
+      response = search_provider.search_securities(symbol, **params)
 
       if response.success?
         response.data.map do |provider_security|
@@ -108,6 +122,10 @@ module Security::Provided
 
   private
     def provider
-      self.class.provider
+      if exchange_operating_mic == "CRYPTO"
+        self.class.registry.get_provider(:coin_gecko)
+      else
+        self.class.provider
+      end
     end
 end

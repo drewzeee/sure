@@ -20,11 +20,16 @@ class Trade::CreateForm
   private
     # Users can either look up a ticker from a provider or enter a manual, "offline" ticker (that we won't fetch prices for)
     def security
-      ticker_symbol, exchange_operating_mic = ticker.present? ? ticker.split("|") : [ manual_ticker, nil ]
+      ticker_symbol, mic = ticker.present? ? ticker.split("|") : [ manual_ticker, nil ]
+
+      # Default to CRYPTO exchange if we are in a Crypto account and no exchange is provided
+      if mic.blank? && account.accountable_type == "Crypto"
+        mic = "CRYPTO"
+      end
 
       Security::Resolver.new(
         ticker_symbol,
-        exchange_operating_mic: exchange_operating_mic
+        exchange_operating_mic: mic
       ).resolve
     end
 
